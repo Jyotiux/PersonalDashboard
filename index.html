@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mini Dashboard</title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f6fa;
+    color: #333;
+  }
+
+  h1 {
+    text-align: center;
+    padding: 20px 0;
+    font-weight: normal;
+  }
+
+  .container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    max-width: 1000px;
+    margin: 0 auto 40px;
+    padding: 0 20px;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-weight: normal;
+    font-size: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+  }
+
+  #time {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  #weather {
+    font-size: 18px;
+    line-height: 1.5;
+  }
+
+  input, textarea, button {
+    margin-top: 5px;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  button {
+    background: #3498db;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  button:hover {
+    background: #2980b9;
+  }
+
+  ul {
+    padding-left: 20px;
+    margin-top: 10px;
+  }
+
+  ul li {
+    padding: 6px 0;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  ul li:hover {
+    background: #f0f0f0;
+  }
+
+  .card .note-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+</style>
+</head>
+<body>
+
+<h1>Mini Dashboard</h1>
+
+<div class="container">
+
+  <!-- Time Card -->
+  <div class="card">
+    <h2>Current Time</h2>
+    <div id="time">Loading...</div>
+  </div>
+
+  <!-- Weather Card -->
+<div class="card">
+  <h2 id="weatherTitle">Weather at your location</h2>
+  <div id="weather">Loading weather...</div>
+</div>
+
+
+
+  <!-- Notes Card -->
+  <div class="card">
+    <h2>Notes</h2>
+    <div class="note-section">
+      <input type="text" id="noteInput" placeholder="Enter a note">
+      <button onclick="addNote()">Add Note</button>
+      <ul id="notesList"></ul>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // 1. Live Clock
+  function updateTime() {
+    document.getElementById("time").innerText = new Date().toLocaleTimeString();
+  }
+  setInterval(updateTime, 1000);
+  updateTime();
+
+  // 2. Weather (Open-Meteo API)
+async function loadWeather() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async function(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                document.getElementById("weather").innerHTML = 
+                    "Temperature: <b>" + data.current_weather.temperature + "°C</b><br>" +
+                    "Windspeed: <b>" + data.current_weather.windspeed + " km/h</b>";
+            } catch(err) {
+                document.getElementById("weather").innerText = "Weather API not available";
+            }
+        }, function(error) {
+            document.getElementById("weather").innerText = "Unable to get location.";
+        });
+    } else {
+        document.getElementById("weather").innerText = "Geolocation not supported.";
+    }
+}
+
+// Call the function
+loadWeather();
+
+
+  // 3. Local Storage Notes
+  function loadNotes() {
+    const notes = JSON.parse(localStorage.getItem("notes")) || [];
+    const list = document.getElementById("notesList");
+    list.innerHTML = "";
+    notes.forEach((note, index) => {
+      const li = document.createElement("li");
+      li.textContent = note;
+      li.onclick = () => { deleteNote(index); };
+      list.appendChild(li);
+    });
+  }
+
+  function addNote() {
+    const input = document.getElementById("noteInput");
+    const note = input.value.trim();
+    if(note === "") return;
+    const notes = JSON.parse(localStorage.getItem("notes")) || [];
+    notes.push(note);
+    localStorage.setItem("notes", JSON.stringify(notes));
+    input.value = "";
+    loadNotes();
+  }
+
+  function deleteNote(index) {
+    const notes = JSON.parse(localStorage.getItem("notes")) || [];
+    notes.splice(index, 1);
+    localStorage.setItem("notes", JSON.stringify(notes));
+    loadNotes();
+  }
+
+  loadNotes();
+</script>
+
+</body>
+</html>
